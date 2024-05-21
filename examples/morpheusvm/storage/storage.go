@@ -283,6 +283,7 @@ func SetTotalSupply(ctx context.Context, mu state.Mutable, supply uint64) error 
 	key := TotalSupplyKey()
 	val := encodeUint64(supply)
 	return mu.Insert(ctx, key, val)
+
 }
 
 // Utility functions for encoding and decoding uint64
