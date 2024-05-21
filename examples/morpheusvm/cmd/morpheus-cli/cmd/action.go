@@ -59,3 +59,39 @@ var transferCmd = &cobra.Command{
 		return err
 	},
 }
+
+var mintCmd = &cobra.Command{
+	Use: "mint",
+	RunE: func(*cobra.Command, []string) error {
+		ctx := context.Background()
+		_, _, factory, cli, bcli, ws, err := handler.DefaultActor()
+		if err != nil {
+			return err
+		}
+
+		// Select recipient
+		recipient, err := handler.Root().PromptAddress("recipient")
+		if err != nil {
+			return err
+		}
+
+		// Select amount to mint
+		amount, err := handler.Root().PromptAmount("amount to mint", consts.Decimals, 0, nil)
+		if err != nil {
+			return err
+		}
+
+		// Confirm action
+		cont, err := handler.Root().PromptContinue()
+		if !cont || err != nil {
+			return err
+		}
+
+		// Generate transaction
+		_, _, err = sendAndWait(ctx, &actions.Mint{
+			To:    recipient,
+			Value: amount,
+		}, cli, bcli, ws, factory, true)
+		return err
+	},
+}
