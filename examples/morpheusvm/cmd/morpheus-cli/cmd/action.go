@@ -1,6 +1,3 @@
-// Copyright (C) 2023, Ava Labs, Inc. All rights reserved.
-// See the file LICENSE for licensing terms.
-
 package cmd
 
 import (
@@ -64,19 +61,24 @@ var mintCmd = &cobra.Command{
 	Use: "mint",
 	RunE: func(*cobra.Command, []string) error {
 		ctx := context.Background()
-		_, _, factory, cli, bcli, ws, err := handler.DefaultActor()
+		_, priv, factory, cli, bcli, ws, err := handler.DefaultActor()
 		if err != nil {
 			return err
 		}
 
-		// Select recipient
-		recipient, err := handler.Root().PromptAddress("recipient")
-		if err != nil {
+		// Get balance info
+		balance, err := handler.GetBalance(ctx, bcli, priv.Address)
+		if balance == 0 || err != nil {
 			return err
 		}
 
 		// Select amount to mint
-		amount, err := handler.Root().PromptAmount("amount to mint", consts.Decimals, 0, nil)
+		/*amount, err := handler.Root().PromptAmount("amount to mint", consts.Decimals, 0, nil)
+		if err != nil {
+			return err
+		}*/
+
+		amount, err := handler.Root().PromptAmount("amount", consts.Decimals, 10000, nil)
 		if err != nil {
 			return err
 		}
@@ -89,7 +91,6 @@ var mintCmd = &cobra.Command{
 
 		// Generate transaction
 		_, _, err = sendAndWait(ctx, &actions.Mint{
-			To:    recipient,
 			Value: amount,
 		}, cli, bcli, ws, factory, true)
 		return err
