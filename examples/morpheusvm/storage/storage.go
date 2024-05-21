@@ -254,7 +254,7 @@ func FeeKey() (k []byte) {
 	return feeKey
 }
 
-const (
+/*const (
 	// Define the key for total supply and the number of chunks needed
 	TotalSupplyKeyPrefix = "totalsupply"
 	TotalSupplyChunks    = 1 // Adjust as per your actual chunk requirements
@@ -299,4 +299,4 @@ func decodeUint64(data []byte) (uint64, error) {
 		return 0, errors.New("invalid length for uint64")
 	}
 	return binary.BigEndian.Uint64(data), nil
-}
+}*/
