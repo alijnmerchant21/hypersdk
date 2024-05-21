@@ -73,12 +73,7 @@ var mintCmd = &cobra.Command{
 		}
 
 		// Select amount to mint
-		/*amount, err := handler.Root().PromptAmount("amount to mint", consts.Decimals, 0, nil)
-		if err != nil {
-			return err
-		}*/
-
-		amount, err := handler.Root().PromptAmount("amount", consts.Decimals, 10000, nil)
+		amount, err := handler.Root().PromptAmount("amount to mint", consts.Decimals, hconsts.MaxUint64-balance, nil)
 		if err != nil {
 			return err
 		}
