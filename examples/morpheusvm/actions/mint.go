@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/math"
+	"github.com/ava-labs/hypersdk/utils"
+
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/codec"
 	"github.com/ava-labs/hypersdk/consts"
@@ -16,8 +17,7 @@ import (
 var _ chain.Action = (*Mint)(nil)
 
 type Mint struct {
-	To    codec.Address `json:"to"`
-	Value uint64        `json:"value"`
+	Value uint64 `json:"value"`
 }
 
 func (*Mint) GetTypeID() uint8 {
@@ -26,16 +26,15 @@ func (*Mint) GetTypeID() uint8 {
 
 func (m *Mint) StateKeys(actor codec.Address, _ ids.ID) state.Keys {
 	return state.Keys{
-		string(storage.TotalSupplyKey()): state.Read | state.Write,
-		string(storage.BalanceKey(m.To)): state.All,
+		string(storage.BalanceKey(actor)): state.Read | state.Write,
 	}
 }
 
 func (*Mint) StateKeysMaxChunks() []uint16 {
-	return []uint16{storage.TotalSupplyChunks, storage.BalanceChunks}
+	return []uint16{storage.BalanceChunks}
 }
 
-func (m Mint) Execute(
+func (m *Mint) Execute(
 	ctx context.Context,
 	_ chain.Rules,
 	mu state.Mutable,
@@ -46,34 +45,19 @@ func (m Mint) Execute(
 
 	// Check if the amount is valid
 	if m.Value == 0 {
-		return false, 1, []byte("Value cannot be 0"), nil
+		return false, 1, OutputValueZero, nil
 	}
 
-	//Update the total supply
-	totalSupply, err := storage.GetTotalSupply(ctx, mu)
-	if err != nil {
-		return false, 1, []byte(err.Error()), nil
-	}
-
-	newTotalSupply, err := math.Add64(totalSupply, m.Value)
-	if err != nil {
-		return false, 1, []byte(err.Error()), nil
-	}
-
-	if err := storage.SetTotalSupply(ctx, mu, newTotalSupply); err != nil {
-		return false, 1, []byte(err.Error()), nil
-	}
-
-	// Update the balance of the recipient
-	if err := storage.AddBalance(ctx, mu, m.To, m.Value, true); err != nil {
-		return false, 1, []byte(err.Error()), nil
+	// Update the balance
+	if err := storage.AddBalance(ctx, mu, actor, m.Value, true); err != nil {
+		return false, 1, utils.ErrBytes(err), nil
 	}
 
 	return true, 1, nil, nil
-
 }
 
 func (*Mint) MaxComputeUnits(chain.Rules) uint64 {
+	// CHANGED: Updated constant value for max compute units
 	return MintComputeUnits
 }
 
@@ -82,13 +66,12 @@ func (*Mint) Size() int {
 }
 
 func (m *Mint) Marshal(p *codec.Packer) {
-	p.PackAddress(m.To)
 	p.PackUint64(m.Value)
 }
 
 func UnmarshalMint(p *codec.Packer) (chain.Action, error) {
 	var mint Mint
-	p.UnpackAddress(&mint.To) // we do not verify the typeID is valid
+
 	mint.Value = p.UnpackUint64(true)
 	if err := p.Err(); err != nil {
 		return nil, err
