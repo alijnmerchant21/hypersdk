@@ -4,3 +4,4 @@
 package actions
 
 const TransferComputeUnits = 1
+const MintComputeUnits = 5
