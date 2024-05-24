@@ -946,6 +946,36 @@ var _ = ginkgo.Describe("[Tx Processing]", func() {
 			gomega.Ω(results[0].Success).Should(gomega.BeTrue())
 		})
 	})
+
+	ginkgo.It("performs minting action", func() {
+		initialBal, errInitBal := instances[0].lcli.Balance(context.TODO(), codec.MustAddressBech32(lconsts.HRP, addr))
+		gomega.Ω(errInitBal).Should(gomega.BeNil())
+
+		txParser, errParser := instances[0].lcli.Parser(context.Background())
+		gomega.Ω(errParser).Should(gomega.BeNil())
+
+		txSubmit, _, _, errGenTx := instances[0].cli.GenerateTransaction(
+			context.Background(),
+			txParser,
+			&actions.Mint{
+				Value: 53_000,
+			},
+			factory,
+		)
+		gomega.Ω(errGenTx).Should(gomega.BeNil())
+		gomega.Ω(txSubmit(context.Background())).Should(gomega.BeNil())
+
+		acceptBlock := expectBlk(instances[0])
+		txResults := acceptBlock(false)
+
+		gomega.Ω(txResults).Should(gomega.HaveLen(1))
+		gomega.Ω(txResults[0].Success).Should(gomega.BeTrue())
+
+		finalBal, errFinalBal := instances[0].lcli.Balance(context.TODO(), codec.MustAddressBech32(lconsts.HRP, addr))
+		gomega.Ω(errFinalBal).Should(gomega.BeNil())
+		gomega.Ω(finalBal).Should(gomega.Equal(initialBal + 53_000 - txResults[0].Fee))
+	})
+
 })
 
 func expectBlk(i instance) func(bool) []*chain.Result {
